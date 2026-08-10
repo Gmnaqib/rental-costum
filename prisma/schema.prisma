@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        BigInt      @id @default(autoincrement())
+  name      String      @db.VarChar(255)
+  email     String      @unique @db.VarChar(255)
+  password  String      @db.VarChar(255)
+  role      UserRole    @default(user)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  profile    Profile?
+  borrowings Borrowing[]
+
+  @@map("users")
+}
+
+model Profile {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @unique @map("user_id")
+  phoneNumber String   @map("phone_number") @db.VarChar(20)
+  address     String   @db.Text
+  heightCm    Int?     @map("height_cm")
+  weightKg    Int?     @map("weight_kg")
+  chestSizeCm Int?     @map("chest_size_cm")
+  waistSizeCm Int?     @map("waist_size_cm")
+  avatar      String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Unit {
+  id                  BigInt       @id @default(autoincrement())
+  code                String       @unique @db.VarChar(100)
+  name                String       @db.VarChar(255)
+  sizeCategory        SizeCategory @default(M) @map("size_category")
+  recommendedHeightMin Int?        @map("recommended_height_min")
+  recommendedHeightMax Int?        @map("recommended_height_max")
+  description         String?      @db.Text
+  image               String?      @db.VarChar(255)
+  status              UnitStatus   @default(available)
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  borrowings Borrowing[]
+
+  @@map("units")
+}
+
+model Event {
+  id          BigInt   @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  location    String?  @db.VarChar(255)
+  startDate   DateTime @map("start_date") @db.Date
+  endDate     DateTime @map("end_date") @db.Date
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  borrowings Borrowing[]
+
+  @@map("events")
+}
+
+model Borrowing {
+  id         BigInt          @id @default(autoincrement())
+  userId     BigInt          @map("user_id")
+  unitId     BigInt          @map("unit_id")
+  eventId    BigInt?         @map("event_id")
+  borrowDate DateTime        @map("borrow_date") @db.Date
+  dueDate    DateTime        @map("due_date") @db.Date
+  returnDate DateTime?       @map("return_date") @db.Date
+  fineAmount Int             @default(0) @map("fine_amount")
+  status     BorrowingStatus @default(borrowed)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit  Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@map("borrowings")
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum SizeCategory {
+  S
+  M
+  L
+  XL
+  XXL
+}
+
+enum UnitStatus {
+  available
+  borrowed
+}
+
+enum BorrowingStatus {
+  booked
+  borrowed
+  returned
+  cancelled
+}
